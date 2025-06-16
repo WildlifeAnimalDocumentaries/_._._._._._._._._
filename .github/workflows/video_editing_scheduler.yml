@@ -1,0 +1,73 @@
+name: VIDEO EDITING SCHEDULER
+
+on:
+  workflow_dispatch:
+  # schedule:
+  #   - cron: '30 9 * * *'   # Runs at 3:00 PM IST
+  #   - cron: '30 14 * * *'  # Runs at 8:00 PM IST
+  
+jobs:
+  run-script:
+    runs-on: ubuntu-latest
+    steps:
+      # Checkout the repository
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      # Set up Python environment
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.12.9'  # Specify the Python version you need
+      
+      # Install the necessary packages
+      - name: Installed package list
+        run: apt list --installed
+
+      # Install dependencies
+      - name: Install dependencies
+        run: |
+         python3 -m pip install --upgrade pip
+         pip3 install -r requirements.txt
+
+      # Run your Python script
+      - name: Run Python script
+        run: python3 VIDEO_EDITING/video_editing.py
+
+      # Commit changes if REELS was modified, pull, and push the modified changes.
+      - name: Commit in batches of 50
+        shell: bash
+        run: |
+          # Get list of untracked files in REELS/
+          mapfile -t files < <(git ls-files --others --exclude-standard REELS/)
+
+          # Filter out REELS/Video_0.mp4
+          filtered_files=()
+          for file in "${files[@]}"; do
+            if [[ "$file" != "REELS/Video_0.mp4" ]]; then
+              filtered_files+=("$file")
+            fi
+          done
+
+          total=${#filtered_files[@]}
+          batch_size=50
+
+          echo "Total files to commit: $total"
+          echo "Batch size: $batch_size"
+
+          for ((i=0; i<$total; i+=$batch_size)); do
+            batch=("${filtered_files[@]:i:batch_size}")
+            echo "Processing batch: $((i+1)) to $((i + ${#batch[@]}))"
+            echo "Files added to staging: ${batch[@]}"
+
+            git config user.name "github-actions[bot]"
+            git config user.email "github-actions[bot]@users.noreply.github.com"
+
+            git add "${batch[@]}"
+            git commit -m "Batch commit: files $((i+1)) to $((i + ${#batch[@]}))"
+            echo "Committed batch: $((i+1)) to $((i + ${#batch[@]}))"
+
+            git pull --rebase origin main || echo "No changes to pull"
+            git push origin main
+            echo "Pushed batch: $((i+1)) to $((i + ${#batch[@]}))"
+          done
