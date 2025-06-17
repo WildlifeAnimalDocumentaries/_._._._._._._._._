@@ -13,6 +13,14 @@ jobs:
       # Checkout the repository
       - name: Checkout Code
         uses: actions/checkout@v4
+        with:
+          sparse-checkout: |
+            REEL_TO_UPLOAD/
+            REELS/
+            VIDEO_EDITING/
+            VIDEOS/
+            requirements.txt
+          fetch-depth: 1
 
       # Set up Python environment
       - name: Set up Python
