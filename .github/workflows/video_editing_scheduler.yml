@@ -58,7 +58,7 @@ jobs:
           done
 
           total=${#filtered_files[@]}
-          batch_size=50
+          batch_size=30
 
           echo "Total files to commit: $total"
           echo "Batch size: $batch_size"
