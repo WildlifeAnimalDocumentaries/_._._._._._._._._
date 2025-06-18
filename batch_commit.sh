@@ -1,12 +1,12 @@
 #!/bin/bash
 
-# Get list of untracked files in VIDEOS_TO_CHECK/
-mapfile -t files < <(git ls-files --others --exclude-standard VIDEOS_TO_CHECK/)
+# Get list of untracked files in VIDEOS/
+mapfile -t files < <(git ls-files --others --exclude-standard VIDEOS/)
 
-# Filter out VIDEOS_TO_CHECK/Video_0.mp4
+# Filter out VIDEOS/Video_0.mp4
 filtered_files=()
 for file in "${files[@]}"; do
-  if [[ "$file" != "VIDEOS_TO_CHECK/Video_0.mp4" ]]; then
+  if [[ "$file" != "VIDEOS/Video_0.mp4" ]]; then
     filtered_files+=("$file")
   fi
 done
