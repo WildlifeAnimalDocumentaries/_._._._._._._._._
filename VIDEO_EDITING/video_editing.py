@@ -525,7 +525,7 @@ def main():
     # remove_previous_reel(reel_number)
     
     try:
-        for reel_number in range(1, 496):
+        for reel_number in range(151, 331):
             # Get the input video from video folder.
             input_video_path = get_input_video(reel_number)
             
