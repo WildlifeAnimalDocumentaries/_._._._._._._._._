@@ -518,11 +518,11 @@ def process_video(input_video_path, reel_number):
     clean_up_files(cropped_video_path)
 def main():
     # Getting the reel number from counter file.
-    reel_number = get_reel_number()
-    print(f"Reel Number : {reel_number}")
+    # reel_number = get_reel_number()
+    # print(f"Reel Number : {reel_number}")
     
     # Remove the previous day's reel before starting today's processing
-    remove_previous_reel(reel_number)
+    # remove_previous_reel(reel_number)
     
     try:
         for reel_number in range(1, 496):
