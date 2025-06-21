@@ -20,7 +20,7 @@ font_size = 45
 # Video Related Parameters
 scale = 1
 video_folder_path = 'VIDEOS'
-reel_folder_path = 'REELS'
+reel_folder_path = 'REELSN'
 reel_upload_folder_path = 'REEL_TO_UPLOAD'
 model_path = 'VIDEO_EDITING/MODEL/ESPCN_x4.pb'  # Path to the super-resolution model
 SuperResolution = cv2.dnn_superres.DnnSuperResImpl_create()
@@ -120,20 +120,22 @@ def detect_video_area(frame,reel_number):
     
     # Step 1: Convert to grayscale
     gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+    
     if(check_number_in_file(number_1_path,reel_number)):
         # Step 2: Improve contrast using histogram equalization
         gray = cv2.equalizeHist(gray)
-            
+        # Step 2: Apply Bilateral Filter blur to reduce noise
+        blurred = cv2.bilateralFilter(gray, 9, 75, 75)    
         # Step 3: Multi-Scale Edge Detection (Canny + Laplacian)
-        high_thresh, _ = cv2.threshold(gray, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
+        high_thresh, _ = cv2.threshold(blurred, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
         low_thresh = 0.5 * high_thresh
-        canny_edges = cv2.Canny(gray, low_thresh, high_thresh)
-        laplacian_edges = cv2.Laplacian(gray, cv2.CV_8U, ksize=7)
+        canny_edges = cv2.Canny(blurred, low_thresh, high_thresh)
+        laplacian_edges = cv2.Laplacian(blurred, cv2.CV_8U, ksize=7)
 
         # Step 4: Combine Edge Maps
         edges = cv2.bitwise_or(canny_edges, laplacian_edges)
 
-        margin = 10  # Reduced margin for more accuracy
+        margin = 0  # Reduced margin for more accuracy
     else:
         edges = cv2.Canny(gray, 0, 250)
         margin = 0  # Reduced margin for more accuracy
@@ -146,7 +148,11 @@ def detect_video_area(frame,reel_number):
         largest_contour = max(contours, key=cv2.contourArea)
 
         # Step 7: Filter out small/noisy contours by setting a minimum area threshold
-        min_contour_area = 0.25 * frame.shape[0] * frame.shape[1]  # 5% of the frame size
+        if reel_number >= 366:
+            epsilon = 0.2
+        else:
+            epsilon = 0.25
+        min_contour_area = epsilon * frame.shape[0] * frame.shape[1]  # 5% of the frame size
         if cv2.contourArea(largest_contour) < min_contour_area:
             return None
 
@@ -159,14 +165,14 @@ def detect_video_area(frame,reel_number):
         min_w = min(min_w, w - 2*margin)
         max_y = max(max_y, y + margin)
         min_h = min(min_h, h - 2*margin)
-        if(check_number_in_file(number_2_path,reel_number)):
-            margin = 60
+        if(check_number_in_file(number_1_path,reel_number)):
+            margin = 0
             max_y = max(max_y, y + margin)
-            min_h = min(min_h, h - 2*margin)
-        elif(check_number_in_file(number_3_path,reel_number)):
-            margin = 90
-            max_y = max(max_y, y + margin)
-            min_h = min(min_h, h - 2*margin)
+            min_h = min(min_h, h - margin)
+        elif(check_number_in_file(number_2_path,reel_number)):
+            margin = 80
+            max_y = max(max_y, y + 2*margin)
+            min_h = max(min_h, h + 2*margin)
         return max_x, max_y, min_w, min_h
 
     return None
@@ -279,7 +285,7 @@ def clean_up_files(*files):
             logging.warning(f"File not found, skipping deletion: {file_path}")
             
 def process_video(input_video_path, reel_number):
-    cropped_video_path = os.path.join(reel_folder_path, f'cropped_video_no_audio_{reel_number}.mp4')
+    cropped_video_path = os.path.join(reel_folder_path, f'cropped_{reel_number}.mp4')
     cropped_video_with_audio_path = os.path.join(reel_folder_path, f'cropped_video_{reel_number}.mp4')
     output_reel_path = os.path.join(reel_folder_path, f'reel_no_audio_{reel_number}.mp4')
     video_overlay_path = os.path.join(reel_folder_path, f'reel_video_{reel_number}.mp4')
@@ -321,6 +327,7 @@ def process_video(input_video_path, reel_number):
         fps = cap.get(cv2.CAP_PROP_FPS)
         x, y, w, h = crop_x, crop_y, crop_w, crop_h
         out = cv2.VideoWriter(cropped_video_path, cv2.VideoWriter_fourcc(*'mp4v'), fps, (w*scale, h*scale))
+        count = 1
         while cap.isOpened():
             ret, frame = cap.read()
             if not ret:
@@ -332,14 +339,16 @@ def process_video(input_video_path, reel_number):
             # cropped_frame = adjust_contrast(cropped_frame)
             # cropped_frame = enhance_color(cropped_frame)
             # cropped_frame = enhance_video(cropped_frame)
-
+            if count == 100:
+                break
             # Write the enhanced, cropped frame
             out.write(cropped_frame)
+            count += 1
 
         cap.release()
         if out:
             out.release()
-            add_audio_to_video(cropped_video_path, cropped_video_with_audio_path)
+            # add_audio_to_video(cropped_video_path, cropped_video_with_audio_path)
     
     def overlay_video():
 
@@ -515,24 +524,21 @@ def process_video(input_video_path, reel_number):
     # # Step 6 - Clean up some files
     # shutil.copy(image_overlay_path,final_output_path)
     # clean_up_files(cropped_video_path, cropped_video_with_audio_path, output_reel_path, video_overlay_path, text_overlay_path, image_overlay_path)
-    clean_up_files(cropped_video_path)
+    # clean_up_files(cropped_video_path)
 def main():
     # Getting the reel number from counter file.
-    # reel_number = get_reel_number()
-    # print(f"Reel Number : {reel_number}")
+    reel_number = get_reel_number()
+    print(f"Reel Number : {reel_number}")
     
     # Remove the previous day's reel before starting today's processing
-    # remove_previous_reel(reel_number)
-    
-    try:
-        for reel_number in range(151, 331):
-            # Get the input video from video folder.
-            input_video_path = get_input_video(reel_number)
-            
-            # Process the input video
-            process_video(input_video_path, reel_number)
-    except Exception as e:
-        logging.error(f"An error occurred during batch processing: {e}")
+    remove_previous_reel(reel_number)
+
+    for reel_number in range(1, 493):
+        # Get the input video from video folder.
+        input_video_path = get_input_video(reel_number)
+        
+        # Process the input video
+        process_video(input_video_path, reel_number)
             
     # # Copy the final processed reel to REEL_TO_UPLOAD
     # final_reel_path = os.path.join(reel_folder_path, f'reel_{reel_number}.mp4')
