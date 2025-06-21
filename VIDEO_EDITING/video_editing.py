@@ -94,11 +94,11 @@ def check_number_in_file(number_txt_file_path,number_to_check):
             numbers = {line.strip() for line in file}  # Using a set for fast lookup
 
         if str(number_to_check) in numbers:
-            print(f"Number {number_to_check} is present in the file. Performing Action 1.")
+            # print(f"Number {number_to_check} is present in the file. Performing Action 1.")
             # Action 1: Replace this with what you want to do
             return True
         else:
-            print(f"Number {number_to_check} is NOT present in the file. Performing Action 2.")
+            # print(f"Number {number_to_check} is NOT present in the file. Performing Action 2.")
             # Action 2: Replace this with what you want to do
             return False
 
@@ -515,6 +515,7 @@ def process_video(input_video_path, reel_number):
     
     # Step 1 - Crop the Video Out
     crop_video()
+    print(f"Video {reel_number} cropped and saved to {cropped_video_path}")
     # Step 2 - Overlay the cropped Video on a Black Background
     # center_x, center_y = overlay_video()
     # # Step 3 - Overlay Text
@@ -527,14 +528,15 @@ def process_video(input_video_path, reel_number):
     # clean_up_files(cropped_video_path)
 def main():
     # Getting the reel number from counter file.
-    reel_number = get_reel_number()
-    print(f"Reel Number : {reel_number}")
+    # reel_number = get_reel_number()
+    # print(f"Reel Number : {reel_number}")
     
     # Remove the previous day's reel before starting today's processing
-    remove_previous_reel(reel_number)
+    # remove_previous_reel(reel_number)
 
     for reel_number in range(1, 493):
         # Get the input video from video folder.
+        print(f"Reel Number : {reel_number}")
         input_video_path = get_input_video(reel_number)
         
         # Process the input video
